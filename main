@@ -2,13 +2,12 @@ async function generateBaseschema() {
     let tables = [];
     let views = [];
     let fields = [];
-    let collaborators = base.activeCollaborators
-
+    let collaborators = base.activeCollaborators;
 
     // Generate table metadata, view metadata, and field metadata
     for (let t of base.tables) {
         if (t.name.includes("Metadata")) continue;
-        let table = base.getTable(t.name)
+        let table = base.getTable(t.name);
         let tableMetadata = {
             name: table.name,
             id: table.id,
@@ -19,8 +18,8 @@ async function generateBaseschema() {
 
         for (let f of table.fields) {
             let field = f;
-            field["tableId"] = t.id
-            fields.push(field)
+            field["tableId"] = t.id;
+            fields.push(field);
         }
 
         for (let view of table.views) {
@@ -29,80 +28,105 @@ async function generateBaseschema() {
                 id: view.id,
                 type: view.type,
                 url: view.url,
-                "tableId": table.id
+                tableId: table.id
             };
             views.push(viewMetadata);
         }
-    }   
+    }
     // Generate base metadata
     let baseMetadata = {
-        "baseName": base.name,
-        "baseId": base.id,
-        "collaborators": collaborators,
-        "tables": tables,
-        "views": views,
-        "fields": fields
+        baseName: base.name,
+        baseId: base.id,
+        collaborators: collaborators,
+        tables: tables,
+        views: views,
+        fields: fields
     };
-    return baseMetadata
+    return baseMetadata;
 }
 
 async function createMetadataTables(schema) {
     let MTables, MViews, MFields;
     // Check if the metadata tables exist and create them if they don't
     try {
-        MTables = base.getTable('Metadata: Tables')
-    }
-    catch {
-        MTables = await base.createTableAsync('Metadata: Tables', [
-            {name: 'name', type: 'singleLineText'},
-            {name: 'id', type: 'singleLineText'},
-            {name: 'url', type: 'url'},
-            {name: 'description', type: 'multilineText'},
-            { name: 'Schema', type: 'multilineText' } // Add the 'Schema' field
-        ]);
-    }
-    try {
-        MViews = base.getTable('Metadata: Views')
-    }
-    catch {
-        MViews = await base.createTableAsync('Metadata: Views', [
-            {name: 'name', type: 'singleLineText'},
-            {name: 'id', type: 'singleLineText'},
-            {name: 'type', type: 'singleLineText'},
-            {name: 'url', type: 'url'}
-        ]);
+        MTables = base.getTable('Metadata: Tables');
+    } catch (error) {
+        console.error("Error getting table 'Metadata: Tables':", error);
+        try {
+            MTables = await base.createTableAsync('Metadata: Tables', [
+                { name: 'name', type: 'singleLineText' },
+                { name: 'id', type: 'singleLineText' },
+                { name: 'url', type: 'url' },
+                { name: 'description', type: 'multilineText' },
+                { name: 'Schema', type: 'multilineText' }
+            ]);
+        } catch (createError) {
+            console.error("Error creating table 'Metadata: Tables':", createError);
+            throw createError;
+        }
     }
     try {
-        MFields = base.getTable('Metadata: Fields')
+        MViews = base.getTable('Metadata: Views');
+    } catch (error) {
+        console.error("Error getting table 'Metadata: Views':", error);
+        try {
+            MViews = await base.createTableAsync('Metadata: Views', [
+                { name: 'name', type: 'singleLineText' },
+                { name: 'id', type: 'singleLineText' },
+                { name: 'type', type: 'singleLineText' },
+                { name: 'url', type: 'url' }
+            ]);
+        } catch (createError) {
+            console.error("Error creating table 'Metadata: Views':", createError);
+            throw createError;
+        }
     }
-    catch {
-        MFields = await base.createTableAsync('Metadata: Fields', [
-            {name: 'name', type: 'singleLineText'},
-            {name: 'id', type: 'singleLineText'},
-            {name: 'type', type: 'singleLineText'},
-            {name: 'description', type: 'multilineText'},
-            {name: 'options', type: 'singleLineText'},
-            {name: 'isComputed', type: 'checkbox', 'options':{'icon': 'check','color':'grayBright'}}
-        ]);
+    try {
+        MFields = base.getTable('Metadata: Fields');
+    } catch (error) {
+        console.error("Error getting table 'Metadata: Fields':", error);
+        try {
+            MFields = await base.createTableAsync('Metadata: Fields', [
+                { name: 'name', type: 'singleLineText' },
+                { name: 'id', type: 'singleLineText' },
+                { name: 'type', type: 'singleLineText' },
+                { name: 'description', type: 'multilineText' },
+                { name: 'options', type: 'singleLineText' },
+                { name: 'isComputed', type: 'checkbox', options: { icon: 'check', color: 'grayBright' } }
+            ]);
+        } catch (createError) {
+            console.error("Error creating table 'Metadata: Fields':", createError);
+            throw createError;
+        }
     }
 
     // Now that the tables are created, we can add the multipleRecordLinks fields
-    let MTables_table = base.getTable("Metadata: Tables")
-    let MViews_table = base.getTable("Metadata: Views")
-    let MFields_table = base.getTable("Metadata: Fields")
-    try{
-        MViews_table.getField("table")
+    let MTables_table = base.getTable("Metadata: Tables");
+    let MViews_table = base.getTable("Metadata: Views");
+    let MFields_table = base.getTable("Metadata: Fields");
+    try {
+        MViews_table.getField("table");
+    } catch (error) {
+        console.error("Field 'table' not found in 'Metadata: Views'. Creating field.", error);
+        try {
+            await MViews_table.createFieldAsync('table', 'multipleRecordLinks', { linkedTableId: MTables_table.id });
+        } catch (createError) {
+            console.error("Error creating 'table' field in 'Metadata: Views':", createError);
+            throw createError;
+        }
     }
-    catch{
-    await MViews_table.createFieldAsync('table', 'multipleRecordLinks', {'linkedTableId': MTables_table.id});
+    try {
+        MFields_table.getField("table");
+    } catch (error) {
+        console.error("Field 'table' not found in 'Metadata: Fields'. Creating field.", error);
+        try {
+            await MFields_table.createFieldAsync('table', 'multipleRecordLinks', { linkedTableId: MTables_table.id });
+        } catch (createError) {
+            console.error("Error creating 'table' field in 'Metadata: Fields':", createError);
+            throw createError;
+        }
     }
-    try{
-        MFields_table.getField("table")
-    }
-    catch{
-    await MFields_table.createFieldAsync('table', 'multipleRecordLinks', {'linkedTableId': MTables_table.id});
-    }
-    return [MTables_table,MViews_table,MFields_table]
+    return [MTables_table, MViews_table, MFields_table];
 }
 
 async function createReferenceDictionary(schema) {
@@ -115,160 +139,176 @@ async function createReferenceDictionary(schema) {
 
     // Iterate over each table
     for (let table of tables) {
-        // Only process specific metadata tables
-        if (!metadataTables.includes(table.name)){continue} else {
-            // Select all records from the table
-            let records = await table.selectRecordsAsync();
-
-            // Iterate over each record
-            for (let record of records.records) {
-                // Check if the record name starts with "tbl", "viw", or "fld"
-                let identifier = record.getCellValue("id")
-
-                if (identifier.startsWith("tbl") || identifier.startsWith("viw") || identifier.startsWith("fld")) {
-                    // Use the primary field as the key and the record id as the value
-                    dictionary[identifier] = record.id;
+        if (!metadataTables.includes(table.name)) {
+            continue;
+        } else {
+            try {
+                let records = await table.selectRecordsAsync();
+                for (let record of records.records) {
+                    let identifier = record.getCellValue("id");
+                    if (identifier && (identifier.startsWith("tbl") || identifier.startsWith("viw") || identifier.startsWith("fld"))) {
+                        dictionary[identifier] = record.id;
+                    }
                 }
+            } catch (error) {
+                console.error(`Error processing records for metadata table ${table.name}:`, error);
             }
         }
     }
 
-    // If the dictionary is empty, return null
     if (Object.keys(dictionary).length === 0) {
         return null;
     }
-
-    // Return the dictionary
     return dictionary;
 }
 
-
 async function populateMetadataTables(schema, refDict, MTables, MViews, MFields) {
-    // Get all records from the metadata tables
-    let MTablesRecords = await MTables.selectRecordsAsync();
-    let MViewsRecords = await MViews.selectRecordsAsync();
-    let MFieldsRecords = await MFields.selectRecordsAsync();
+    let MTablesRecords, MViewsRecords, MFieldsRecords;
+    try {
+        MTablesRecords = await MTables.selectRecordsAsync();
+    } catch (error) {
+        console.error("Error selecting records from 'Metadata: Tables':", error);
+        throw error;
+    }
+    try {
+        MViewsRecords = await MViews.selectRecordsAsync();
+    } catch (error) {
+        console.error("Error selecting records from 'Metadata: Views':", error);
+        throw error;
+    }
+    try {
+        MFieldsRecords = await MFields.selectRecordsAsync();
+    } catch (error) {
+        console.error("Error selecting records from 'Metadata: Fields':", error);
+        throw error;
+    }
 
     // Iterate over each table in the schema
     for (let table of schema.tables) {
-        // Check if a record with the same id already exists
-        let existingRecord = MTablesRecords.records.find(record => record.getCellValue('id') === table.id);
-
-        if (existingRecord) {
-            // Update the existing record
-            await MTables.updateRecordAsync(existingRecord, {
-                'name': table.name,
-                'url': table.url,
-                'description': table.description
-            });
-        } else {
-            // Create a new record
-            await MTables.createRecordAsync({
-                'id': table.id,
-                'name': table.name,
-                'url': table.url,
-                'description': table.description,
-                'Schema': JSON.stringify(table) // Add the 'Schema' field with the relevant table schema
-
-            });
+        try {
+            let existingRecord = MTablesRecords.records.find(record => record.getCellValue('id') === table.id);
+            if (existingRecord) {
+                await MTables.updateRecordAsync(existingRecord, {
+                    name: table.name,
+                    url: table.url,
+                    description: table.description
+                });
+            } else {
+                await MTables.createRecordAsync({
+                    id: table.id,
+                    name: table.name,
+                    url: table.url,
+                    description: table.description,
+                    Schema: JSON.stringify(table)
+                });
+            }
+        } catch (error) {
+            console.error(`Error processing table record (ID: ${table.id}, Name: ${table.name}):`, error);
         }
     }
 
-// Iterate over each view in the schema
-for (let view of schema.views) {
-    // Check if a record with the same id already exists
-    let existingRecord = MViewsRecords.records.find(record => record.getCellValue('id') === view.id);
-
-    if (existingRecord) {
-        // Update the existing record
-try {
-
-    await MViews.updateRecordAsync(existingRecord, {
-        'name': view.name,
-        'type': view.type,
-        'url': view.url,
-        // Use the reference dictionary to get the record id for the table
-        'table': refDict ? [{id: refDict[view.tableId]}] : []
-    });
-} catch (error) {
-}
-    } else {
-        // Create a new record
- try {
-    await MViews.createRecordAsync({
-        'name': view.name,
-        'id': view.id,
-        'type': view.type,
-        'url': view.url,
-        // Use the reference dictionary to get the record id for the table
-        'table': refDict ? [{id: refDict[view.tableId]}] : []
-    });
-} catch (error) {
-}
+    // Iterate over each view in the schema
+    for (let view of schema.views) {
+        try {
+            let existingRecord = MViewsRecords.records.find(record => record.getCellValue('id') === view.id);
+            if (existingRecord) {
+                try {
+                    await MViews.updateRecordAsync(existingRecord, {
+                        name: view.name,
+                        type: view.type,
+                        url: view.url,
+                        table: refDict ? [{ id: refDict[view.tableId] }] : []
+                    });
+                } catch (error) {
+                    console.error(`Error updating view record (ID: ${view.id}, Name: ${view.name}) in table (ID: ${view.tableId}):`, error);
+                }
+            } else {
+                try {
+                    await MViews.createRecordAsync({
+                        name: view.name,
+                        id: view.id,
+                        type: view.type,
+                        url: view.url,
+                        table: refDict ? [{ id: refDict[view.tableId] }] : []
+                    });
+                } catch (error) {
+                    console.error(`Error creating view record (ID: ${view.id}, Name: ${view.name}) for table (ID: ${view.tableId}):`, error);
+                }
+            }
+        } catch (error) {
+            console.error(`Error processing view record (ID: ${view.id}, Name: ${view.name}):`, error);
+        }
     }
-}
 
-// Iterate over each field in the schema
-for (let field of schema.fields) {
-    // Check if a record with the same id already exists
-    let existingRecord = MFieldsRecords.records.find(record => record.getCellValue('id') === field.id);
-
-    if (existingRecord) {
-        // Update the existing record
-        await MFields.updateRecordAsync(existingRecord, {
-            'name': field.name,
-            'type': field.type,
-            'description': field.description || "",
-            'options': field.options ? JSON.stringify(field.options) : "",
-            'isComputed': field.isComputed,
-            // Use the reference dictionary to get the record id for the table
-            'table': refDict ? [{id: refDict[field.tableId]}] : []
-
-        });
-    } else {
-        // Create a new record
-        await MFields.createRecordAsync({
-            'name': field.name,
-            'id': field.id,
-            'type': field.type,
-            'description': field.description || "",
-            'options': field.options ? JSON.stringify(field.options) : "",
-            'isComputed': field.isComputed,
-            // Use the reference dictionary to get the record id for the table
-            'table': refDict ? [{id: refDict[field.id]}] : []
-        });
+    // Iterate over each field in the schema
+    for (let field of schema.fields) {
+        try {
+            let existingRecord = MFieldsRecords.records.find(record => record.getCellValue('id') === field.id);
+            if (existingRecord) {
+                await MFields.updateRecordAsync(existingRecord, {
+                    name: field.name,
+                    type: field.type,
+                    description: field.description || "",
+                    options: field.options ? JSON.stringify(field.options) : "",
+                    isComputed: field.isComputed,
+                    table: refDict ? [{ id: refDict[field.tableId] }] : []
+                });
+            } else {
+                await MFields.createRecordAsync({
+                    name: field.name,
+                    id: field.id,
+                    type: field.type,
+                    description: field.description || "",
+                    options: field.options ? JSON.stringify(field.options) : "",
+                    isComputed: field.isComputed,
+                    table: refDict ? [{ id: refDict[field.tableId] }] : []
+                });
+            }
+        } catch (error) {
+            console.error(`Error processing field record (ID: ${field.id}, Name: ${field.name}) for table (ID: ${field.tableId}):`, error);
+        }
     }
-}
-
 }
 
 async function generateschemaTable(schema) {
     let Mschema;
-    // Check if the metadata table exists and create it if it doesn't
     try {
-        Mschema = base.getTable('Metadata: Schema')
-    }
-    catch {
-        await base.createTableAsync('Metadata: Schema', [
-            {name: 'schema', type: 'multilineText'},
-            {name: 'created', type: 'dateTime', options: {
-                dateFormat: {name: 'local', format: 'l'},
-                timeFormat: {name: '24hour', format: 'HH:mm'},
-                timeZone: 'client'
-            }}
-        ]);
-        Mschema = base.getTable("Metadata: Schema")
+        Mschema = base.getTable('Metadata: Schema');
+    } catch (error) {
+        console.error("Error getting table 'Metadata: Schema':", error);
+        try {
+            await base.createTableAsync('Metadata: Schema', [
+                { name: 'schema', type: 'multilineText' },
+                { name: 'created', type: 'dateTime', options: {
+                    dateFormat: { name: 'local', format: 'l' },
+                    timeFormat: { name: '24hour', format: 'HH:mm' },
+                    timeZone: 'client'
+                }}
+            ]);
+            Mschema = base.getTable("Metadata: Schema");
+        } catch (createError) {
+            console.error("Error creating table 'Metadata: Schema':", createError);
+            throw createError;
+        }
     }
 
-    // Create a new record with the current schema and timestamp
-    await Mschema.createRecordAsync({
-        'schema': JSON.stringify(schema),
-        'created': new Date().toISOString()
-    });
+    try {
+        await Mschema.createRecordAsync({
+            schema: JSON.stringify(schema),
+            created: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error("Error creating record in 'Metadata: Schema':", error);
+    }
 }
-// Execute the function
-let schema = await generateBaseschema()
-let tablesArray = await createMetadataTables()
-let refDict = await createReferenceDictionary(schema)
-await populateMetadataTables(schema, refDict, tablesArray[0],tablesArray[1],tablesArray[2])
-await generateschemaTable(schema)
+
+// Execute the functions with top-level error handling
+try {
+    let schema = await generateBaseschema();
+    let tablesArray = await createMetadataTables();
+    let refDict = await createReferenceDictionary(schema);
+    await populateMetadataTables(schema, refDict, tablesArray[0], tablesArray[1], tablesArray[2]);
+    await generateschemaTable(schema);
+} catch (error) {
+    console.error("Error during metadata generation process:", error);
+}
