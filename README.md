@@ -1,3 +1,6 @@
+# About This Fork
+Maintained largly by AI, do not trust anything here as good code.
+
 # AirtableMetaMapper
 Airtable MetaMapper is a tool that maps and connects the current schema of an Airtable database to metadata tables, facilitating the organization and management of table, view, and field metadata. This is a script meant to be used within the Airtable scripting block.
 
