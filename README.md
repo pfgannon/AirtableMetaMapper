@@ -10,3 +10,14 @@ Usage
 5. Finally, run the generateschemaTable function. This function generates a new record within the metadata schema table, storing the current schema along with a timestamp for future reference and version tracking.
 By following these steps, Airtable MetaMapper automates the process of generating and populating metadata tables based on the existing database schema, simplifying the management and organization of essential metadata.
 Please note that you may need to make necessary adjustments and customizations to fit your specific use case or requirements.
+
+## Known Issue
+Randomly produced error:
+```
+Error
+O: Can't create records: invalid cell value for field 'table'.
+Cell value has invalid format: <root>.0.id is missing.
+Linked records field value must be an array of objects with property 'id' corresponding to linked record id.
+    at populateMetadataTables on line 224
+    at async main on line 266
+```
